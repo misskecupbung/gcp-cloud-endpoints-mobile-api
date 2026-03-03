@@ -212,14 +212,13 @@ gcloud endpoints services describe $PROJECT_ID.appspot.com
 gcloud app versions list
 ```
 
-### Start Fresh
+## Additional Resources
 
-```bash
-./scripts/cleanup.sh
-./scripts/setup.sh
-./scripts/deploy.sh
-```
+- [Cloud Endpoints Documentation](https://cloud.google.com/endpoints/docs)
+- [App Engine Standard Documentation](https://cloud.google.com/appengine/docs/standard/python3)
+- [Cloud Firestore Documentation](https://cloud.google.com/firestore/docs)
+- [OpenAPI Specification](https://swagger.io/specification/v2/)
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
