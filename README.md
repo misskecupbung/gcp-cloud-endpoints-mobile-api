@@ -1,12 +1,40 @@
-# GCP Cloud Endpoints + App Engine: Mobile API Lab
+# GCP Cloud Endpoints + App Engine: Mobile API
 
 Production-ready Mobile API backend using Cloud Endpoints, App Engine, and Firestore. Includes API key authentication, rate limiting, structured logging, and auto-scaling.
 
-**Duration**: ~45 minutes  
-**Level**: Intermediate  
-**Cost**: < $1 (free tier eligible)
+> **Duration**: ~45 minutes  
+> **Level**: Intermediate  
+> **Cost**: < $1 (free tier eligible)
 
 ## Architecture
+
+```
+Mobile/Web Client
+       │
+       │ HTTPS + API Key
+       ▼
+┌──────────────────────────────────┐
+│        Cloud Endpoints           │
+│  - API key validation            │
+│  - Rate limiting (100 req/min)   │
+│  - Request logging               │
+└──────────────┬───────────────────┘
+               │
+               ▼
+┌──────────────────────────────────┐
+│      App Engine Standard         │
+│  - Flask API (Python 3.9)        │
+│  - Auto-scaling (0-2 instances)  │
+│  - Structured logging            │
+└──────────────┬───────────────────┘
+               │
+               ▼
+┌──────────────────────────────────┐
+│        Cloud Firestore           │
+│  - NoSQL document database       │
+│  - Real-time sync                │
+└──────────────────────────────────┘
+```
 
 ## Prerequisites
 
@@ -14,13 +42,13 @@ Production-ready Mobile API backend using Cloud Endpoints, App Engine, and Fires
 - `gcloud` CLI installed
 - Python 3.9+
 
-## Lab Steps
+## Steps
 
 ### 1. Setup (5 mins)
 
 ```bash
-git clone <repo-url>
-cd gcp-cloud-endpoints-mobile-api-lab
+git clone https://github.com/misskecupbung/gcp-cloud-endpoints-mobile-api.git
+cd gcp-cloud-endpoints-mobile-api
 
 export PROJECT_ID="your-project-id"
 gcloud config set project $PROJECT_ID
@@ -113,44 +141,7 @@ Check [Cloud Console > Endpoints](https://console.cloud.google.com/endpoints) fo
 
 ---
 
-## Architecture
-
-```
-Mobile/Web Client
-       │
-       │ HTTPS + API Key
-       ▼
-┌──────────────────────────────────┐
-│        Cloud Endpoints           │
-│  - API key validation            │
-│  - Rate limiting (100 req/min)   │
-│  - Request logging               │
-└──────────────┬───────────────────┘
-               │
-               ▼
-┌──────────────────────────────────┐
-│      App Engine Standard         │
-│  - Flask API (Python 3.9)        │
-│  - Auto-scaling (0-2 instances)  │
-│  - Structured logging            │
-└──────────────┬───────────────────┘
-               │
-               ▼
-┌──────────────────────────────────┐
-│        Cloud Firestore           │
-│  - NoSQL document database       │
-│  - Real-time sync                │
-└──────────────────────────────────┘
-```
-
-### Request Flow
-
-1. Client sends HTTPS request with `?key=API_KEY`
-2. Cloud Endpoints validates key, checks quota
-3. Request forwarded to App Engine
-4. Flask processes request, returns JSON
-
-### Features
+## Features
 
 - Cloud Firestore database
 - API key authentication
@@ -160,14 +151,6 @@ Mobile/Web Client
 - Security headers
 - Input validation
 - Health checks with DB status
-
-### Optional Enhancements
-
-- JWT auth (Firebase Auth)
-- Caching (Memorystore)
-- Alerting (Cloud Monitoring)
-
----
 
 ## Troubleshooting
 
@@ -236,3 +219,7 @@ gcloud app versions list
 ./scripts/setup.sh
 ./scripts/deploy.sh
 ```
+
+## License
+
+MIT

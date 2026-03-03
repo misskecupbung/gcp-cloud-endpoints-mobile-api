@@ -35,18 +35,18 @@ gcloud app deploy app.yaml --quiet
 
 # Create API key if it doesn't exist
 KEY_NAME=$(gcloud services api-keys list \
-    --filter="displayName:mobile-api-lab-key" \
+    --filter="displayName:mobile-api-key" \
     --format="value(name)" 2>/dev/null || true)
 
 if [ -z "$KEY_NAME" ]; then
     echo "Creating API key..."
     gcloud services api-keys create \
-        --display-name="mobile-api-lab-key" \
+        --display-name="mobile-api-key" \
         --api-target="service=$PROJECT_ID.appspot.com" \
         --quiet 2>/dev/null || true
     sleep 3
     KEY_NAME=$(gcloud services api-keys list \
-        --filter="displayName:mobile-api-lab-key" \
+        --filter="displayName:mobile-api-key" \
         --format="value(name)" 2>/dev/null | head -1)
 fi
 

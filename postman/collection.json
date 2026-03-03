@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "GCP Cloud Endpoints Mobile API Lab",
+    "name": "GCP Cloud Endpoints Mobile API",
     "description": "Collection for testing the Mobile API built with Cloud Endpoints and App Engine",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },

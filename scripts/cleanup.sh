@@ -1,5 +1,5 @@
 #!/bin/bash
-# Remove resources created by this lab
+# Remove resources created by this project
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -14,7 +14,7 @@ echo "Project: $PROJECT_ID"
 echo ""
 echo "This will delete:"
 echo "  - Old App Engine versions"
-echo "  - API key (mobile-api-lab-key)"
+echo "  - API key (mobile-api-key)"
 echo "  - Firestore 'users' collection"
 echo "  - Local generated files"
 echo ""
@@ -34,7 +34,7 @@ done
 # Delete API key
 echo "Deleting API key..."
 key=$(gcloud services api-keys list \
-    --filter="displayName:mobile-api-lab-key" \
+    --filter="displayName:mobile-api-key" \
     --format="value(name)" 2>/dev/null)
 [ -n "$key" ] && gcloud services api-keys delete "$key" --quiet 2>/dev/null || true
 

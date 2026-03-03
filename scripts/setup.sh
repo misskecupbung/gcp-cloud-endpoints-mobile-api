@@ -1,5 +1,5 @@
 #!/bin/bash
-# Enable required APIs for Cloud Endpoints + App Engine lab
+# Enable required APIs for Cloud Endpoints + App Engine
 
 set -e
 
