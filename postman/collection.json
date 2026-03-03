@@ -1,0 +1,351 @@
+{
+  "info": {
+    "name": "GCP Cloud Endpoints Mobile API Lab",
+    "description": "Collection for testing the Mobile API built with Cloud Endpoints and App Engine",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://YOUR_PROJECT_ID.appspot.com",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "YOUR_API_KEY",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "Check if the API is healthy. No authentication required."
+          }
+        },
+        {
+          "name": "Get Version",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/version",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "version"]
+            },
+            "description": "Get API version information. No authentication required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users?key={{apiKey}}&limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "{{apiKey}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Get a paginated list of all users."
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"device\": \"iPhone 15 Pro\",\n  \"push_token\": \"apns-token-12345\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users?key={{apiKey}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "{{apiKey}}"
+                }
+              ]
+            },
+            "description": "Create a new user."
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/1?key={{apiKey}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "1"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "{{apiKey}}"
+                }
+              ]
+            },
+            "description": "Get a specific user by their ID."
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Smith\",\n  \"device\": \"iPhone 15 Pro Max\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/1?key={{apiKey}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "1"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "{{apiKey}}"
+                }
+              ]
+            },
+            "description": "Update an existing user."
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/1?key={{apiKey}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "1"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "{{apiKey}}"
+                }
+              ]
+            },
+            "description": "Delete a user by their ID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Devices",
+      "item": [
+        {
+          "name": "Register iOS Device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"1\",\n  \"device_type\": \"ios\",\n  \"push_token\": \"apns-token-abc123\",\n  \"device_name\": \"iPhone 15 Pro\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/devices/register?key={{apiKey}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "devices", "register"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "{{apiKey}}"
+                }
+              ]
+            },
+            "description": "Register an iOS device for push notifications."
+          }
+        },
+        {
+          "name": "Register Android Device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"1\",\n  \"device_type\": \"android\",\n  \"push_token\": \"fcm-token-xyz789\",\n  \"device_name\": \"Pixel 8 Pro\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/devices/register?key={{apiKey}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "devices", "register"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "{{apiKey}}"
+                }
+              ]
+            },
+            "description": "Register an Android device for push notifications."
+          }
+        },
+        {
+          "name": "Unregister Device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/devices/unregister?key={{apiKey}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "devices", "unregister"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "{{apiKey}}"
+                }
+              ]
+            },
+            "description": "Unregister a device from push notifications."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Testing",
+      "item": [
+        {
+          "name": "Missing API Key (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Test request without API key - should return 401."
+          }
+        },
+        {
+          "name": "Invalid API Key (403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users?key=invalid-key",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "invalid-key"
+                }
+              ]
+            },
+            "description": "Test request with invalid API key - should return 403."
+          }
+        },
+        {
+          "name": "User Not Found (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/99999?key={{apiKey}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "99999"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "{{apiKey}}"
+                }
+              ]
+            },
+            "description": "Test request for non-existent user - should return 404."
+          }
+        },
+        {
+          "name": "Missing Required Fields (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Incomplete User\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users?key={{apiKey}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "{{apiKey}}"
+                }
+              ]
+            },
+            "description": "Test request with missing required fields - should return 400."
+          }
+        }
+      ]
+    }
+  ]
+}

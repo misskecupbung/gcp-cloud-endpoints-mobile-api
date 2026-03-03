@@ -1,0 +1,258 @@
+swagger: "2.0"
+info:
+  title: "Mobile API"
+  version: "1.0.0"
+  description: "Mobile API backend with Cloud Endpoints"
+
+host: "YOUR_PROJECT_ID.appspot.com"
+basePath: "/"
+schemes:
+  - "https"
+consumes:
+  - "application/json"
+produces:
+  - "application/json"
+
+securityDefinitions:
+  api_key:
+    type: "apiKey"
+    name: "key"
+    in: "query"
+
+x-google-endpoints:
+  - name: "YOUR_PROJECT_ID.appspot.com"
+    allowCors: true
+
+x-google-management:
+  metrics:
+    - name: "read-requests"
+      displayName: "Read Requests"
+      valueType: INT64
+      metricKind: DELTA
+    - name: "write-requests"
+      displayName: "Write Requests"
+      valueType: INT64
+      metricKind: DELTA
+  quota:
+    limits:
+      - name: "read-limit"
+        metric: "read-requests"
+        unit: "1/min/{project}"
+        values:
+          STANDARD: 1000
+      - name: "write-limit"
+        metric: "write-requests"
+        unit: "1/min/{project}"
+        values:
+          STANDARD: 100
+
+paths:
+  /api/v1/health:
+    get:
+      summary: "Health check"
+      operationId: "healthCheck"
+      tags: ["System"]
+      responses:
+        200:
+          description: "OK"
+
+  /api/v1/version:
+    get:
+      summary: "API version"
+      operationId: "getVersion"
+      tags: ["System"]
+      responses:
+        200:
+          description: "OK"
+
+  /api/v1/users:
+    get:
+      summary: "List users"
+      operationId: "listUsers"
+      tags: ["Users"]
+      security:
+        - api_key: []
+      x-google-quota:
+        metricCosts:
+          read-requests: 1
+      parameters:
+        - name: "limit"
+          in: "query"
+          type: "integer"
+          default: 10
+        - name: "offset"
+          in: "query"
+          type: "integer"
+          default: 0
+      responses:
+        200:
+          description: "OK"
+        401:
+          description: "Unauthorized"
+
+    post:
+      summary: "Create user"
+      operationId: "createUser"
+      tags: ["Users"]
+      security:
+        - api_key: []
+      x-google-quota:
+        metricCosts:
+          write-requests: 1
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            type: object
+            required: ["name", "email"]
+            properties:
+              name:
+                type: string
+              email:
+                type: string
+              device:
+                type: string
+              push_token:
+                type: string
+      responses:
+        201:
+          description: "Created"
+        400:
+          description: "Bad request"
+        409:
+          description: "Conflict"
+
+  /api/v1/users/{user_id}:
+    get:
+      summary: "Get user"
+      operationId: "getUser"
+      tags: ["Users"]
+      security:
+        - api_key: []
+      x-google-quota:
+        metricCosts:
+          read-requests: 1
+      parameters:
+        - name: "user_id"
+          in: "path"
+          required: true
+          type: "string"
+      responses:
+        200:
+          description: "OK"
+        404:
+          description: "Not found"
+
+    put:
+      summary: "Update user"
+      operationId: "updateUser"
+      tags: ["Users"]
+      security:
+        - api_key: []
+      x-google-quota:
+        metricCosts:
+          write-requests: 1
+      parameters:
+        - name: "user_id"
+          in: "path"
+          required: true
+          type: "string"
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              email:
+                type: string
+              device:
+                type: string
+              push_token:
+                type: string
+      responses:
+        200:
+          description: "OK"
+        404:
+          description: "Not found"
+
+    delete:
+      summary: "Delete user"
+      operationId: "deleteUser"
+      tags: ["Users"]
+      security:
+        - api_key: []
+      x-google-quota:
+        metricCosts:
+          write-requests: 1
+      parameters:
+        - name: "user_id"
+          in: "path"
+          required: true
+          type: "string"
+      responses:
+        200:
+          description: "OK"
+        404:
+          description: "Not found"
+
+  /api/v1/devices/register:
+    post:
+      summary: "Register device"
+      operationId: "registerDevice"
+      tags: ["Devices"]
+      security:
+        - api_key: []
+      x-google-quota:
+        metricCosts:
+          write-requests: 1
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            type: object
+            required: ["user_id", "device_type", "push_token"]
+            properties:
+              user_id:
+                type: string
+              device_type:
+                type: string
+                enum: ["ios", "android"]
+              push_token:
+                type: string
+              device_name:
+                type: string
+      responses:
+        200:
+          description: "OK"
+        404:
+          description: "User not found"
+
+  /api/v1/devices/unregister:
+    post:
+      summary: "Unregister device"
+      operationId: "unregisterDevice"
+      tags: ["Devices"]
+      security:
+        - api_key: []
+      x-google-quota:
+        metricCosts:
+          write-requests: 1
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            type: object
+            required: ["user_id"]
+            properties:
+              user_id:
+                type: string
+      responses:
+        200:
+          description: "OK"
+        404:
+          description: "User not found"

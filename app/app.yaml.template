@@ -1,0 +1,34 @@
+runtime: python39
+instance_class: F1
+
+entrypoint: gunicorn -b :$PORT main:app
+
+env_variables:
+  GAE_ENV: "standard"
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 2
+  target_cpu_utilization: 0.65
+  target_throughput_utilization: 0.65
+
+handlers:
+  - url: /.*
+    script: auto
+    secure: always
+
+# Health check configuration
+liveness_check:
+  path: "/api/v1/health"
+  check_interval_sec: 30
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+
+readiness_check:
+  path: "/api/v1/health"
+  check_interval_sec: 5
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+  app_start_timeout_sec: 300
