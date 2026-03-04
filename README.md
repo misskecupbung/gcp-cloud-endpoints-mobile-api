@@ -124,8 +124,6 @@ Check [Cloud Console > Endpoints](https://console.cloud.google.com/endpoints) fo
 ./scripts/cleanup.sh
 ```
 
----
-
 ## Troubleshooting
 
 ### "App Engine application does not exist"
