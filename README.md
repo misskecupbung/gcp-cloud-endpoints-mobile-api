@@ -10,6 +10,17 @@ Production-ready Mobile API backend using Cloud Endpoints, App Engine, and Fires
 
 ![image](img/gcp-cloud-endpoints-mobile-api-arch.png)
 
+## Features
+
+- Cloud Firestore database
+- API key authentication (Cloud Endpoints)
+- Rate limiting (100 req/min per IP, Firestore-backed)
+- Auto-scaling (0 to N instances)
+- Structured logging (Cloud Logging)
+- Security headers
+- Input validation
+- Health checks with DB status
+
 ## Prerequisites
 
 - GCP account with billing enabled
@@ -115,17 +126,6 @@ Check [Cloud Console > Endpoints](https://console.cloud.google.com/endpoints) fo
 
 ---
 
-## Features
-
-- Cloud Firestore database
-- API key authentication
-- Rate limiting (100 req/min)
-- Auto-scaling (0 to N instances)
-- Structured logging (Cloud Logging)
-- Security headers
-- Input validation
-- Health checks with DB status
-
 ## Troubleshooting
 
 ### "App Engine application does not exist"
@@ -148,31 +148,6 @@ KEY_NAME=$(gcloud services api-keys list --format="value(name)" | head -1)
 gcloud services api-keys get-key-string $KEY_NAME
 ```
 
-### "Permission denied"
-
-```bash
-gcloud auth login
-gcloud config set project $PROJECT_ID
-```
-
-### Rate limits not working
-
-Redeploy the OpenAPI spec:
-
-```bash
-gcloud endpoints services deploy openapi.yaml
-```
-
-### CORS errors
-
-Check `openapi.yaml` has:
-
-```yaml
-x-google-endpoints:
-  - name: "project-id.appspot.com"
-    allowCors: true
-```
-
 ### Debug Commands
 
 ```bash
@@ -186,7 +161,7 @@ gcloud endpoints services describe $PROJECT_ID.appspot.com
 gcloud app versions list
 ```
 
-## Additional Resources
+## Resources
 
 - [Cloud Endpoints Documentation](https://cloud.google.com/endpoints/docs)
 - [App Engine Standard Documentation](https://cloud.google.com/appengine/docs/standard/python3)
