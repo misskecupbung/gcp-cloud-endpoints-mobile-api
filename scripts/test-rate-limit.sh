@@ -19,7 +19,7 @@ fi
 NUM_REQUESTS="${1:-150}"
 
 echo "Sending $NUM_REQUESTS parallel requests to test rate limiting..."
-echo "Rate limit: 100 requests/min per IP (Flask-Limiter)"
+echo "Rate limit: 100 requests/min per IP (Flask-Limiter + Firestore storage)"
 echo ""
 
 # Send requests in parallel using xargs

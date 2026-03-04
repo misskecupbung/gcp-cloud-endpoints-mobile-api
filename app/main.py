@@ -3,12 +3,15 @@
 import os
 import logging
 import json
+import time
 from datetime import datetime, timezone
 from functools import wraps
 from flask import Flask, request, jsonify, g
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from limits.storage import Storage
+from limits.strategies import MovingWindowRateLimiter
 from google.cloud import firestore
 from google.cloud.logging import Client as LoggingClient
 from werkzeug.exceptions import HTTPException
@@ -21,6 +24,90 @@ if os.environ.get("GAE_ENV"):
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Initialize Firestore early for rate limiter
+db = firestore.Client()
+USERS_COLLECTION = "users"
+RATE_LIMIT_COLLECTION = "rate_limits"
+
+
+class FirestoreStorage(Storage):
+    """Custom Flask-Limiter storage using Firestore."""
+    
+    STORAGE_SCHEME = ["firestore"]
+    
+    def __init__(self, uri: str = None, **options):
+        self.db = db
+        self.collection = RATE_LIMIT_COLLECTION
+    
+    def incr(self, key: str, expiry: int, elastic_expiry: bool = False, amount: int = 1) -> int:
+        """Increment counter for key."""
+        doc_ref = self.db.collection(self.collection).document(key)
+        now = time.time()
+        
+        @firestore.transactional
+        def update_in_transaction(transaction, doc_ref):
+            doc = doc_ref.get(transaction=transaction)
+            if doc.exists:
+                data = doc.to_dict()
+                if data.get("expires_at", 0) < now:
+                    # Expired, reset
+                    transaction.set(doc_ref, {
+                        "count": amount,
+                        "expires_at": now + expiry
+                    })
+                    return amount
+                else:
+                    new_count = data.get("count", 0) + amount
+                    update_data = {"count": new_count}
+                    if elastic_expiry:
+                        update_data["expires_at"] = now + expiry
+                    transaction.update(doc_ref, update_data)
+                    return new_count
+            else:
+                transaction.set(doc_ref, {
+                    "count": amount,
+                    "expires_at": now + expiry
+                })
+                return amount
+        
+        transaction = self.db.transaction()
+        return update_in_transaction(transaction, doc_ref)
+    
+    def get(self, key: str) -> int:
+        """Get current count for key."""
+        doc = self.db.collection(self.collection).document(key).get()
+        if doc.exists:
+            data = doc.to_dict()
+            if data.get("expires_at", 0) < time.time():
+                return 0
+            return data.get("count", 0)
+        return 0
+    
+    def get_expiry(self, key: str) -> int:
+        """Get expiry time for key."""
+        doc = self.db.collection(self.collection).document(key).get()
+        if doc.exists:
+            return int(doc.to_dict().get("expires_at", 0))
+        return -1
+    
+    def check(self) -> bool:
+        """Check if storage is alive."""
+        return True
+    
+    def reset(self) -> int:
+        """Reset all rate limit data."""
+        docs = self.db.collection(self.collection).stream()
+        count = 0
+        for doc in docs:
+            doc.reference.delete()
+            count += 1
+        return count
+    
+    def clear(self, key: str) -> None:
+        """Clear a specific key."""
+        self.db.collection(self.collection).document(key).delete()
+
+
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {
     "origins": os.environ.get("ALLOWED_ORIGINS", "*").split(","),
@@ -28,16 +115,13 @@ CORS(app, resources={r"/api/*": {
     "allow_headers": ["Content-Type", "Authorization"]
 }})
 
-# Rate limiting: 100 requests per minute per IP
+# Rate limiting: 100 requests per minute per IP (shared across instances via Firestore)
 limiter = Limiter(
     get_remote_address,
     app=app,
     default_limits=["100 per minute"],
-    storage_uri="memory://"
+    storage_uri="firestore://"
 )
-
-db = firestore.Client()
-USERS_COLLECTION = "users"
 
 
 def log_request():
