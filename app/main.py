@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from functools import wraps
 from flask import Flask, request, jsonify, g
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from google.cloud import firestore
 from google.cloud.logging import Client as LoggingClient
 from werkzeug.exceptions import HTTPException
@@ -25,6 +27,14 @@ CORS(app, resources={r"/api/*": {
     "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"]
 }})
+
+# Rate limiting: 100 requests per minute per IP
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["100 per minute"],
+    storage_uri="memory://"
+)
 
 db = firestore.Client()
 USERS_COLLECTION = "users"
