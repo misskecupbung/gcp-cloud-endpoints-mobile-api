@@ -1,8 +1,15 @@
 #!/bin/bash
 # Test rate limiting by sending rapid parallel requests
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
 API_HOST="https://$PROJECT_ID.appspot.com"
+
+# Get rate limit from openapi.yaml
+RATE_LIMIT=$(grep -A3 "read-limit" "$PROJECT_ROOT/openapi.yaml" | grep "STANDARD:" | awk '{print $2}')
+RATE_LIMIT="${RATE_LIMIT:-100}"
 
 # Get API key
 KEY_NAME=$(gcloud services api-keys list --format="value(name)" 2>/dev/null | head -1)
@@ -16,7 +23,7 @@ fi
 NUM_REQUESTS="${1:-150}"
 
 echo "Sending $NUM_REQUESTS parallel requests to test rate limiting..."
-echo "Rate limit: 100 reads/min"
+echo "Rate limit: $RATE_LIMIT reads/min"
 echo ""
 
 # Send requests in parallel using xargs
