@@ -4,14 +4,11 @@ import os
 import logging
 import json
 import time
+import hashlib
 from datetime import datetime, timezone
 from functools import wraps
 from flask import Flask, request, jsonify, g
 from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from limits.storage import Storage
-from limits.strategies import MovingWindowRateLimiter
 from google.cloud import firestore
 from google.cloud.logging import Client as LoggingClient
 from werkzeug.exceptions import HTTPException
@@ -24,95 +21,13 @@ if os.environ.get("GAE_ENV"):
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Firestore early for rate limiter
 db = firestore.Client()
 USERS_COLLECTION = "users"
 RATE_LIMIT_COLLECTION = "rate_limits"
 
-
-class FirestoreStorage(Storage):
-    """Custom Flask-Limiter storage using Firestore."""
-    
-    STORAGE_SCHEME = ["firestore"]
-    
-    def __init__(self, uri: str = None, **options):
-        self.db = db
-        self.collection = RATE_LIMIT_COLLECTION
-    
-    @property
-    def base_exceptions(self):
-        """Exceptions that should be caught for retry logic."""
-        from google.cloud.exceptions import GoogleCloudError
-        return (GoogleCloudError,)
-    
-    def incr(self, key: str, expiry: int, elastic_expiry: bool = False, amount: int = 1) -> int:
-        """Increment counter for key."""
-        doc_ref = self.db.collection(self.collection).document(key)
-        now = time.time()
-        
-        @firestore.transactional
-        def update_in_transaction(transaction, doc_ref):
-            doc = doc_ref.get(transaction=transaction)
-            if doc.exists:
-                data = doc.to_dict()
-                if data.get("expires_at", 0) < now:
-                    # Expired, reset
-                    transaction.set(doc_ref, {
-                        "count": amount,
-                        "expires_at": now + expiry
-                    })
-                    return amount
-                else:
-                    new_count = data.get("count", 0) + amount
-                    update_data = {"count": new_count}
-                    if elastic_expiry:
-                        update_data["expires_at"] = now + expiry
-                    transaction.update(doc_ref, update_data)
-                    return new_count
-            else:
-                transaction.set(doc_ref, {
-                    "count": amount,
-                    "expires_at": now + expiry
-                })
-                return amount
-        
-        transaction = self.db.transaction()
-        return update_in_transaction(transaction, doc_ref)
-    
-    def get(self, key: str) -> int:
-        """Get current count for key."""
-        doc = self.db.collection(self.collection).document(key).get()
-        if doc.exists:
-            data = doc.to_dict()
-            if data.get("expires_at", 0) < time.time():
-                return 0
-            return data.get("count", 0)
-        return 0
-    
-    def get_expiry(self, key: str) -> int:
-        """Get expiry time for key."""
-        doc = self.db.collection(self.collection).document(key).get()
-        if doc.exists:
-            return int(doc.to_dict().get("expires_at", 0))
-        return -1
-    
-    def check(self) -> bool:
-        """Check if storage is alive."""
-        return True
-    
-    def reset(self) -> int:
-        """Reset all rate limit data."""
-        docs = self.db.collection(self.collection).stream()
-        count = 0
-        for doc in docs:
-            doc.reference.delete()
-            count += 1
-        return count
-    
-    def clear(self, key: str) -> None:
-        """Clear a specific key."""
-        self.db.collection(self.collection).document(key).delete()
-
+# Rate limit config: 100 requests per minute
+RATE_LIMIT = 100
+RATE_WINDOW = 60  # seconds
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {
@@ -121,13 +36,64 @@ CORS(app, resources={r"/api/*": {
     "allow_headers": ["Content-Type", "Authorization"]
 }})
 
-# Rate limiting: 100 requests per minute per IP (shared across instances via Firestore)
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["100 per minute"],
-    storage_uri="firestore://"
-)
+
+def get_client_ip():
+    """Get client IP from X-Forwarded-For or remote_addr."""
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.remote_addr or "unknown"
+
+
+def check_rate_limit():
+    """Check and update rate limit. Returns (allowed, current_count)."""
+    client_ip = get_client_ip()
+    # Hash IP for document ID (Firestore doesn't like dots in doc IDs)
+    doc_id = hashlib.md5(client_ip.encode()).hexdigest()
+    
+    doc_ref = db.collection(RATE_LIMIT_COLLECTION).document(doc_id)
+    now = time.time()
+    window_start = now - RATE_WINDOW
+    
+    try:
+        doc = doc_ref.get()
+        if doc.exists:
+            data = doc.to_dict()
+            last_reset = data.get("window_start", 0)
+            count = data.get("count", 0)
+            
+            if last_reset < window_start:
+                # Window expired, reset
+                doc_ref.set({"window_start": now, "count": 1, "ip": client_ip})
+                return True, 1
+            elif count >= RATE_LIMIT:
+                return False, count
+            else:
+                doc_ref.update({"count": firestore.Increment(1)})
+                return True, count + 1
+        else:
+            doc_ref.set({"window_start": now, "count": 1, "ip": client_ip})
+            return True, 1
+    except Exception as e:
+        logger.error(f"Rate limit check failed: {e}")
+        # Fail open - allow request if rate limiting fails
+        return True, 0
+
+
+def rate_limit(f):
+    """Decorator to apply rate limiting."""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        allowed, count = check_rate_limit()
+        if not allowed:
+            return jsonify({
+                "error": "Rate limit exceeded",
+                "limit": RATE_LIMIT,
+                "window": f"{RATE_WINDOW}s"
+            }), 429
+        response = f(*args, **kwargs)
+        return response
+    return wrapper
 
 
 def log_request():
@@ -217,6 +183,7 @@ def version():
 # Users endpoints
 
 @app.route("/api/v1/users")
+@rate_limit
 def list_users():
     try:
         limit = min(int(request.args.get("limit", 10)), 100)
@@ -247,6 +214,7 @@ def list_users():
 
 
 @app.route("/api/v1/users", methods=["POST"])
+@rate_limit
 @require_json("name", "email")
 def create_user():
     data = request.get_json()
@@ -276,6 +244,7 @@ def create_user():
 
 
 @app.route("/api/v1/users/<user_id>")
+@rate_limit
 def get_user(user_id):
     doc = db.collection(USERS_COLLECTION).document(user_id).get()
     if not doc.exists:
@@ -287,6 +256,7 @@ def get_user(user_id):
 
 
 @app.route("/api/v1/users/<user_id>", methods=["PUT"])
+@rate_limit
 def update_user(user_id):
     if not request.is_json:
         return jsonify({"error": "Content-Type must be application/json"}), 400
@@ -325,6 +295,7 @@ def update_user(user_id):
 
 
 @app.route("/api/v1/users/<user_id>", methods=["DELETE"])
+@rate_limit
 def delete_user(user_id):
     doc_ref = db.collection(USERS_COLLECTION).document(user_id)
     doc = doc_ref.get()
@@ -342,6 +313,7 @@ def delete_user(user_id):
 # Device endpoints
 
 @app.route("/api/v1/devices/register", methods=["POST"])
+@rate_limit
 @require_json("user_id", "device_type", "push_token")
 def register_device():
     data = request.get_json()
@@ -375,6 +347,7 @@ def register_device():
 
 
 @app.route("/api/v1/devices/unregister", methods=["POST"])
+@rate_limit
 @require_json("user_id")
 def unregister_device():
     data = request.get_json()
