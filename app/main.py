@@ -39,6 +39,12 @@ class FirestoreStorage(Storage):
         self.db = db
         self.collection = RATE_LIMIT_COLLECTION
     
+    @property
+    def base_exceptions(self):
+        """Exceptions that should be caught for retry logic."""
+        from google.cloud.exceptions import GoogleCloudError
+        return (GoogleCloudError,)
+    
     def incr(self, key: str, expiry: int, elastic_expiry: bool = False, amount: int = 1) -> int:
         """Increment counter for key."""
         doc_ref = self.db.collection(self.collection).document(key)
