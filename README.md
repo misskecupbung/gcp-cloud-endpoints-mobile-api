@@ -8,39 +8,13 @@ Production-ready Mobile API backend using Cloud Endpoints, App Engine, and Fires
 
 ## Architecture
 
-```
-Mobile/Web Client
-       │
-       │ HTTPS + API Key
-       ▼
-┌──────────────────────────────────┐
-│        Cloud Endpoints           │
-│  - API key validation            │
-│  - Rate limiting (100 req/min)   │
-│  - Request logging               │
-└──────────────┬───────────────────┘
-               │
-               ▼
-┌──────────────────────────────────┐
-│      App Engine Standard         │
-│  - Flask API (Python 3.9)        │
-│  - Auto-scaling (0-2 instances)  │
-│  - Structured logging            │
-└──────────────┬───────────────────┘
-               │
-               ▼
-┌──────────────────────────────────┐
-│        Cloud Firestore           │
-│  - NoSQL document database       │
-│  - Real-time sync                │
-└──────────────────────────────────┘
-```
+![image](img/gcp-cloud-endpoints-mobile-api-arch.png)
 
 ## Prerequisites
 
 - GCP account with billing enabled
 - `gcloud` CLI installed
-- Python 3.9+
+- Python 3.12+
 
 ## Steps
 
