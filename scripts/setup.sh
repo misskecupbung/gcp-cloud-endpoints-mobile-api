@@ -49,10 +49,21 @@ if ! gcloud app describe &>/dev/null; then
     gcloud app create --region="$region" --quiet
 fi
 
-# Initialize Firestore in native mode if not exists
-if ! gcloud firestore databases describe --database="(default)" &>/dev/null; then
-    echo "Creating Firestore database..."
-    gcloud firestore databases create --location=nam5 --type=firestore-native --quiet 2>/dev/null || true
+# Initialize Firestore in native mode
+db_type=$(gcloud firestore databases describe --database="(default)" --format="value(type)" 2>/dev/null || echo "")
+
+if [ -z "$db_type" ]; then
+    echo "Creating Firestore database in native mode..."
+    gcloud firestore databases create --location=nam5 --type=firestore-native --quiet
+elif [ "$db_type" = "DATASTORE_MODE" ]; then
+    echo ""
+    echo "WARNING: Firestore is in Datastore mode. The API requires Native mode."
+    echo "To fix this, delete and recreate the database:"
+    echo ""
+    echo "  gcloud firestore databases delete --database=\"(default)\""
+    echo "  # Wait 5 minutes, then:"
+    echo "  gcloud firestore databases create --location=nam5 --type=firestore-native"
+    echo ""
 fi
 
 # Update openapi.yaml with project ID
